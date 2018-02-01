@@ -1,6 +1,7 @@
-var LabelItem = function(fullName, color, selected) {
+var LabelItem = function(fullName, nameValue, color, selected) {
     this.fullName = fullName;
     this.name = "";
+    this.nameValue = nameValue;
     this.color = color;
     this.selected = selected;
     this.id = "";
@@ -9,6 +10,10 @@ var LabelItem = function(fullName, color, selected) {
 
 LabelItem.prototype.getFullName = function() {
     return this.fullName;
+}
+
+LabelItem.prototype.getNameValue = function() {
+    return this.nameValue;
 }
 
 LabelItem.prototype.getName = function() {

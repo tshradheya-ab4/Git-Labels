@@ -94,9 +94,15 @@ ExistingIssuePageController.prototype.handleExternalApplyLabelsEvent = function(
         return false;
     }
 
-    var data = "utf8=" + encodeURIComponent(postInfo.utf8Token) + "&_method=" + encodeURIComponent(postInfo.postMethod);
-    data += ("&authenticity_token=" + encodeURIComponent(postInfo.token));
-    data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=");
+    var data = new FormData();
+    data.append("utf8", postInfo.utf8Token);
+    data.append("_method", postInfo.postMethod);
+    data.append("authenticity_token", postInfo.token);
+    data.append(this.GitLabelFormName, "");
+
+    // var data = "utf8=" + encodeURIComponent(postInfo.utf8Token) + "&_method=" + encodeURIComponent(postInfo.postMethod);
+    // data += ("&authenticity_token=" + encodeURIComponent(postInfo.token));
+    // data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=");
 
     var selectedItemIDsIter = this.storage.getSelectedItemIDsIterator();
     while(true){
@@ -114,14 +120,33 @@ ExistingIssuePageController.prototype.handleExternalApplyLabelsEvent = function(
             continue;
         }
 
-        data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=" + encodeURIComponent((item.getFullName())));
+        //data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=" + encodeURIComponent(item.getNameValue()));
+        data.append(this.GitLabelFormName, item.getNameValue());
     }
-    
-    $.post(postInfo.url, data)
-     .done(this.handleSuccessfulPostRequest.bind(this))
-     .fail(this.handleUnsuccessfulPostRequest.bind(this));
+    console.log(data);
+    console.log(postInfo.url);
 
-    return true;
+    $.ajax({
+        url: postInfo.url,
+        data: data,
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: 'POST',
+        type: 'POST', // For jQuery < 1.9
+        success: function(data){
+            this.handleSuccessfulPostRequest.bind(this);
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert("Status: " + textStatus);
+            alert("Error: " + errorThrown);
+        }
+    });
+    // $.post(postInfo.url, data)
+    //  .done(this.handleSuccessfulPostRequest.bind(this))
+    //  .fail(this.handleUnsuccessfulPostRequest.bind(this));
+    //
+    // return true;
 }
 
 ExistingIssuePageController.prototype.handleSuccessfulPostRequest = function(response) {
@@ -448,6 +473,11 @@ ExistingIssuePageController.prototype.getLabelsFromDOM = function() {
             continue;
         }
 
+        let nameValue = nameNode.getAttribute("value");
+        if(!nameValue) {
+            continue;
+        }
+
         let colorNode = item.getElementsByClassName("float-left")[0];
         if(!colorNode){
             continue;
@@ -464,7 +494,7 @@ ExistingIssuePageController.prototype.getLabelsFromDOM = function() {
         }
         var isSelected = selectedNode.hasAttribute("checked");
 
-        storage.addItem(new LabelItem(name, color, isSelected));
+        storage.addItem(new LabelItem(name, nameValue, color, isSelected));
     }
 
     return storage;
