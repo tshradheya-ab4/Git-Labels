@@ -12,14 +12,15 @@ var ExistingIssuePageController = function(layoutManager) {
     this.GitLabelModalBoxButtonTriggerClass = "js-menu-target";
     this.GitSelectedLabelExactLocation = ".labels.css-truncate";
     this.GitLabelFormName = "issue[labels][]";
-    this.GitLabelFormUTF8DataLocation = "input[name='utf8']";
-    this.GitLabelFormMethodDataLocation = "input[name='_method']";
-    this.GitLabelFormTokenDataLocation = "input[name='authenticity_token']";
+    this.GitLabelFormUTF8DataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='utf8']";
+    this.GitLabelFormMethodDataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='_method']";
+    this.GitLabelFormTokenDataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='authenticity_token']";
     this.sideBarClassName = "discussion-sidebar";
     this.sideBarLocation = ".discussion-sidebar";
     this.sideBarId = "partial-discussion-sidebar";
     this.GitLabelNameLocation = ".select-menu-item-text .color-label";
     this.GitLabelColorLocation = ".select-menu-item-text .color";
+    this.GitLabelListItemText = "select-menu-item-text";
     this.GitLabelSelectionStatusLocation = ".select-menu-item-text input";
     /*
         this.storage,
@@ -78,6 +79,13 @@ ExistingIssuePageController.prototype.getDataForPOSTRequest = function() {
         return null;
     }
 
+    console.log("----------getDataForPOSTRequest----------");
+    console.log("url: ", url);
+    console.log("utf8Token: ", utf8Token);
+    console.log("postMethod: ", postMethod);
+    console.log("token: ", token);
+    console.log("-----------------------------------------");
+
     return { url: url, utf8Token: utf8Token, postMethod: postMethod ,token: token };
 }
 
@@ -93,9 +101,15 @@ ExistingIssuePageController.prototype.handleExternalApplyLabelsEvent = function(
         return false;
     }
 
-    var data = "utf8=" + encodeURIComponent(postInfo.utf8Token) + "&_method=" + encodeURIComponent(postInfo.postMethod);
-    data += ("&authenticity_token=" + encodeURIComponent(postInfo.token));
-    data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=");
+    var data = new FormData();
+    data.append("utf8", postInfo.utf8Token);
+    data.append("_method", postInfo.postMethod);
+    data.append("authenticity_token", postInfo.token);
+    data.append(this.GitLabelFormName, "");
+
+    // var data = "utf8=" + encodeURIComponent(postInfo.utf8Token) + "&_method=" + encodeURIComponent(postInfo.postMethod);
+    // data += ("&authenticity_token=" + encodeURIComponent(postInfo.token));
+    // data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=");
 
     var selectedItemIDsIter = this.storage.getSelectedItemIDsIterator();
     while(true){
@@ -113,14 +127,47 @@ ExistingIssuePageController.prototype.handleExternalApplyLabelsEvent = function(
             continue;
         }
 
-        data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=" + encodeURIComponent((item.getFullName())));
+        //data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=" + encodeURIComponent(item.getNameValue()));
+        data.append(this.GitLabelFormName, item.getNameValue());
     }
 
-    $.post(postInfo.url, data)
-     .done(this.handleSuccessfulPostRequest.bind(this))
-     .fail(this.handleUnsuccessfulPostRequest.bind(this));
+    console.log("----------handleExternalApplyLabelsEvent----------");
+    console.log("data: ");
+    for (var pair of data.entries()) {
+        console.log(pair[0]+ ', ' + pair[1]);
+    }
+
+    // $.ajax({
+    //     url: postInfo.url,
+    //     data: data,
+    //     cache: false,
+    //     contentType: false,
+    //     processData: false,
+    //     method: 'POST',
+    // }).done(this.handleSuccessfulPostRequest.bind(this))
+    // .fail(function(XMLHttpRequest, textStatus, errorThrown) {
+    //     console.log('XHR ERROR ' + XMLHttpRequest.status);
+    //     console.log(JSON.parse(XMLHttpRequest.responseText));
+    // });
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', postInfo.url, false);
+    xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
+    xhr.onreadystatechange = function() {
+        if (xhr.status != 200) {
+            console.log(xhr);
+        }
+    }
+    xhr.send(data);
+
+    console.log("--------------------------------------------------");
 
     return true;
+    // $.post(postInfo.url, data)
+    //  .done(this.handleSuccessfulPostRequest.bind(this))
+    //  .fail(this.handleUnsuccessfulPostRequest.bind(this));
+    //
+    // return true;
 }
 
 ExistingIssuePageController.prototype.handleSuccessfulPostRequest = function(response) {
@@ -186,7 +233,7 @@ ExistingIssuePageController.prototype.updateGitFormData = function($parsedRespon
     if($newAuthToken.length > 0){
         var newAuthTokenValue = $newAuthToken[0].getAttribute("value");
     }
-    
+
     return this.replaceGitFormData(newUTF8Value, newMethodValue, newAuthTokenValue);
 }
 
@@ -233,7 +280,7 @@ ExistingIssuePageController.prototype.processReplyForSideBar = function(reply) {
 
         this.updateGitFormData($reply);
 
-        var $newLabelsDisplay = $reply.find(this.GitSelectedLabelsLocation); 
+        var $newLabelsDisplay = $reply.find(this.GitSelectedLabelsLocation);
         if($newLabelsDisplay.length <= 0){
             return false;
         }
@@ -284,7 +331,7 @@ ExistingIssuePageController.prototype.onUpdatedGitlabelDisplayResponse = functio
 
         this.updateGitFormData($reply);
 
-        var $newLabelsDisplay = $reply.find(this.GitSelectedLabelsLocation); 
+        var $newLabelsDisplay = $reply.find(this.GitSelectedLabelsLocation);
         if($newLabelsDisplay.length <= 0){
             return false;
         }
@@ -351,7 +398,7 @@ ExistingIssuePageController.prototype.recoverLabelsInGitDOM = function(data) {
 }
 
 ExistingIssuePageController.prototype.processGETResponse = function(data) {
-    
+
     if(this.layoutManager){
         this.recoverLabelsInGitDOM(data);
         this.storage = this.getLabelsFromDOM();
@@ -384,7 +431,7 @@ ExistingIssuePageController.prototype.retrieveLabelsFromGETRequest = function() 
 }
 
 ExistingIssuePageController.prototype.processInitialGETResponse = function(data, updateType) {
-    
+
     if(this.layoutManager){
         this.recoverLabelsInGitDOM(data);
         this.storage = this.getLabelsFromDOM();
@@ -437,22 +484,27 @@ ExistingIssuePageController.prototype.getLabelsFromDOM = function() {
 
         var item = items[i];
 
-        var nameNode = item.querySelector(this.GitLabelNameLocation);
-        if(!nameNode){
+        let nameNode = item.getElementsByClassName(this.GitLabelListItemText)[0].getElementsByTagName("input")[0];
+        if(!nameNode) {
             continue;
         }
 
-        var name = nameNode.getAttribute("data-name");
+        let name = nameNode.getAttribute("data-label-name");
         if(!name){
             continue;
         }
 
-        var colorNode = item.querySelector(this.GitLabelColorLocation);
+        let nameValue = nameNode.getAttribute("value");
+        if(!nameValue) {
+            continue;
+        }
+
+        let colorNode = item.getElementsByClassName("float-left")[0];
         if(!colorNode){
             continue;
         }
-        
-        var color = colorNode.style.backgroundColor;
+
+        let color = colorNode.style.backgroundColor;
         if(!color){
             continue;
         }
@@ -463,7 +515,7 @@ ExistingIssuePageController.prototype.getLabelsFromDOM = function() {
         }
         var isSelected = selectedNode.hasAttribute("checked");
 
-        storage.addItem(new LabelItem(name, color, isSelected));
+        storage.addItem(new LabelItem(name, nameValue, color, isSelected));
     }
 
     return storage;
@@ -487,7 +539,7 @@ ExistingIssuePageController.prototype.runWithoutPusher = function() {
 
     pusher = document.createElement("div");
     pusher.classList.add("pusher");
-    document.body.prepend(pusher);   
+    document.body.prepend(pusher);
 
     this.bodyObserver = new MutationObserver(processBodyMutations);
     this.bodyObserver.observe(document.body, {childList:true});
@@ -495,12 +547,12 @@ ExistingIssuePageController.prototype.runWithoutPusher = function() {
     document.addEventListener('DOMContentLoaded', this.stopBodyObserver.bind(this));
 
     processBodyMutations();
-    
+
     function processBodyMutations() {
         var children = document.body.children;
         for(var i = 0, sz = children.length; i < sz;){
             var child = children[i];
-            if(child.tagName === "SCRIPT" || child === pusher 
+            if(child.tagName === "SCRIPT" || child === pusher
                 || child.classList.contains("git-flash-labels-sidebar")
                 || child.classList.contains("git-flash-labels-sidebar-launch-button") ){
                 ++i;
@@ -519,7 +571,7 @@ ExistingIssuePageController.prototype.processPage = function() {
     }
 
     this.bodyObserver = null;
-    
+
     if(!document.body.querySelector(".pusher")){
         this.runWithoutPusher();
     }
@@ -540,8 +592,8 @@ ExistingIssuePageController.prototype.partialRun = function(runParams, layoutMan
     if(!runParams.a && this.hasPermissionToManageLabels()){
         this.layoutManager = layoutManager;
         runParams.a = true;
-    } 
-    
+    }
+
     if(!runParams.a){
         if(isEnd) {
             this.layoutManager = null;
@@ -655,7 +707,7 @@ ExistingIssuePageController.prototype.attachGitSideBarObserver = function() {
         for(var i = 0; i < mutations.length; ++i){
             this.overrideLabelButtonListeners();
             this.updateUI(mutations[i]);
-        }  
+        }
     }.bind(this));
 
     this.sideBarObserver.observe(gitSideBar, { childList: true });
