@@ -12,9 +12,9 @@ var ExistingIssuePageController = function(layoutManager) {
     this.GitLabelModalBoxButtonTriggerClass = "js-menu-target";
     this.GitSelectedLabelExactLocation = ".labels.css-truncate";
     this.GitLabelFormName = "issue[labels][]";
-    this.GitLabelFormUTF8DataLocation = "input[name='utf8']";
-    this.GitLabelFormMethodDataLocation = "input[name='_method']";
-    this.GitLabelFormTokenDataLocation = "input[name='authenticity_token']";
+    this.GitLabelFormUTF8DataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='utf8']";
+    this.GitLabelFormMethodDataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='_method']";
+    this.GitLabelFormTokenDataLocation = ".sidebar-labels .js-issue-sidebar-form input[name='authenticity_token']";
     this.sideBarClassName = "discussion-sidebar";
     this.sideBarLocation = ".discussion-sidebar";
     this.sideBarId = "partial-discussion-sidebar";
@@ -79,6 +79,13 @@ ExistingIssuePageController.prototype.getDataForPOSTRequest = function() {
         return null;
     }
 
+    console.log("----------getDataForPOSTRequest----------");
+    console.log("url: ", url);
+    console.log("utf8Token: ", utf8Token);
+    console.log("postMethod: ", postMethod);
+    console.log("token: ", token);
+    console.log("-----------------------------------------");
+
     return { url: url, utf8Token: utf8Token, postMethod: postMethod ,token: token };
 }
 
@@ -123,25 +130,39 @@ ExistingIssuePageController.prototype.handleExternalApplyLabelsEvent = function(
         //data += ("&" + encodeURIComponent(this.GitLabelFormName) + "=" + encodeURIComponent(item.getNameValue()));
         data.append(this.GitLabelFormName, item.getNameValue());
     }
-    console.log(data);
-    console.log(postInfo.url);
 
-    $.ajax({
-        url: postInfo.url,
-        data: data,
-        cache: false,
-        contentType: false,
-        processData: false,
-        method: 'POST',
-        type: 'POST', // For jQuery < 1.9
-        success: function(data){
-            this.handleSuccessfulPostRequest.bind(this);
-        },
-        error: function(XMLHttpRequest, textStatus, errorThrown) {
-            alert("Status: " + textStatus);
-            alert("Error: " + errorThrown);
+    console.log("----------handleExternalApplyLabelsEvent----------");
+    console.log("data: ");
+    for (var pair of data.entries()) {
+        console.log(pair[0]+ ', ' + pair[1]);
+    }
+
+    // $.ajax({
+    //     url: postInfo.url,
+    //     data: data,
+    //     cache: false,
+    //     contentType: false,
+    //     processData: false,
+    //     method: 'POST',
+    // }).done(this.handleSuccessfulPostRequest.bind(this))
+    // .fail(function(XMLHttpRequest, textStatus, errorThrown) {
+    //     console.log('XHR ERROR ' + XMLHttpRequest.status);
+    //     console.log(JSON.parse(XMLHttpRequest.responseText));
+    // });
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', postInfo.url, false);
+    xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
+    xhr.onreadystatechange = function() {
+        if (xhr.status != 200) {
+            console.log(xhr);
         }
-    });
+    }
+    xhr.send(data);
+
+    console.log("--------------------------------------------------");
+
+    return true;
     // $.post(postInfo.url, data)
     //  .done(this.handleSuccessfulPostRequest.bind(this))
     //  .fail(this.handleUnsuccessfulPostRequest.bind(this));
